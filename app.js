@@ -170,26 +170,37 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyHrOsFQs_0LpXiYnBfQedf
 // ==========================================
 // AUTH & LOGIN
 // ==========================================
+let isLoginValidated = false;
+
 DOM.formLogin.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    // Step 2: Se já validou, permite acesso imediato
+    if(isLoginValidated) {
+        loadMockData();
+        renderDashboard();
+        switchView('view-dashboard');
+        return;
+    }
+
+    // Step 1: Validar
     const email = DOM.loginEmail.value.trim();
-    const btn = DOM.formLogin.querySelector('button');
+    const btn = document.getElementById('btn-submit-login');
     const originalText = btn.innerHTML;
     
     if(email.length < 3 || !email.includes('@')) {
         return showToast("E-mail invalido.", "error");
     }
 
-    btn.innerHTML = `<i data-lucide="loader" class="rotating"></i> Validando...`;
+    btn.innerHTML = `<i data-lucide="loader" class="rotating"></i> Buscando usuário...`;
     lucide.createIcons();
     
     try {
-        // Requisicao real para o Apps Script
         const response = await fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({ action: "check-user", email: email }),
             headers: {
-                "Content-Type": "text/plain;charset=utf-8" // Trick para evitar preflight (CORS) estrito
+                "Content-Type": "text/plain;charset=utf-8"
             }
         });
         
@@ -198,24 +209,29 @@ DOM.formLogin.addEventListener('submit', async (e) => {
         if (data.ok) {
             state.user = data.user;
             DOM.userDisplayName.textContent = state.user.name;
-            showToast(`Bem-vindo, ${state.user.name}!`, "success");
-            loadMockData(); // mantemos p/ MVP front (projetos)
-            renderDashboard();
-            switchView('view-dashboard');
+            
+            // Transforma o botão para permitir o acesso
+            isLoginValidated = true;
+            DOM.loginEmail.disabled = true; // trava o input após validar
+            btn.innerHTML = `Bem-vindo, ${state.user.name}! Acessar <i data-lucide="arrow-right"></i>`;
+            btn.classList.add('gradient-btn'); // visual vibrante liberado
+            showToast("Usuário validado com sucesso!", "success");
+            
         } else {
-            showToast("Acesso negado: e-mail nao reconhecido na aba USERS.", "error");
+            showToast("Acesso negado: e-mail não listado na aba USERS.", "error");
+            btn.innerHTML = originalText;
         }
     } catch (err) {
-        console.warn("Erro ao contactar a API real:", err);
-        // Fallback em caso de falha de teste local sem HTTPS real
-        showToast("Conexao falhou. Acessando modo offline fallback...", "warning");
+        console.warn("Erro ao contactar a API:", err);
+        // Fallback local se bloqueado por CORS
+        isLoginValidated = true;
         state.user = { email, name: email.split('@')[0] };
         DOM.userDisplayName.textContent = state.user.name;
-        loadMockData();
-        renderDashboard();
-        switchView('view-dashboard');
+        DOM.loginEmail.disabled = true;
+        btn.innerHTML = `Bem-vindo, ${state.user.name}! (Modo Especial) <i data-lucide="arrow-right"></i>`;
+        btn.classList.add('gradient-btn');
+        showToast("Conexão falhou. Autorizado fallback automático.", "warning");
     } finally {
-        btn.innerHTML = originalText;
         lucide.createIcons();
     }
 });
