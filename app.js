@@ -167,6 +167,23 @@ function formatTime(seconds) {
 // ==========================================
 const API_URL = "https://script.google.com/macros/s/AKfycbyOPtdl9goveBIMkuDNvboPsQ0qsRkzviZBMoZAl0zZxpy1jdNLNU8tBCJvG3gF_W0foA/exec";
 
+// Helper: GET request (sem CORS preflight — seguro para Apps Script)
+function apiGet(params) {
+    const query = Object.entries(params)
+        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+        .join('&');
+    return fetch(`${API_URL}?${query}`, { method: 'GET' }).then(r => r.json());
+}
+
+// Helper: POST request (para operações de escrita)
+function apiPost(payload) {
+    return fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    }).then(r => r.json());
+}
+
 // ==========================================
 // AUTH & LOGIN
 // ==========================================
@@ -183,36 +200,28 @@ DOM.formLogin.addEventListener('submit', async (e) => {
         return showToast("E-mail invalido.", "error");
     }
 
-    btn.innerHTML = `<i data-lucide="loader" class="rotating"></i> Buscando usuário...`;
+    btn.innerHTML = `<i data-lucide="loader" class="rotating"></i> Validando...`;
     lucide.createIcons();
     
     try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: "check-user", email: email }),
-            headers: {
-                "Content-Type": "text/plain;charset=utf-8"
-            }
-        });
-        
-        const data = await response.json();
+        // USA GET para evitar CORS preflight com Google Apps Script
+        const data = await apiGet({ action: 'check-user', email: email });
         
         if (data.ok) {
             state.user = data.user;
-            sessionStorage.setItem('arara_session_token', data.session_token); // Grava token de sessão
+            sessionStorage.setItem('arara_session_token', data.session_token || '');
             DOM.userDisplayName.textContent = state.user.name;
             
-            showToast("Usuário validado com sucesso!", "success");
+            showToast(`Bem-vindo, ${state.user.name}!`, "success");
             switchView('view-dashboard');
-            loadProjects(); // Carrega da nuvem
+            loadProjects();
             
         } else {
             showToast("Acesso negado: e-mail não listado na aba USERS.", "error");
         }
     } catch (err) {
-        console.error("Erro crítico de API:", err);
-        // Fallback inseguro removido. Em caso de bloqueio, barra o usuário.
-        showToast("Erro na conexão com o servidor. Impossível validar usuário.", "error");
+        console.error("Erro de API:", err);
+        showToast("Erro na conexão com o servidor. Verifique a internet.", "error");
     } finally {
         btn.innerHTML = `Acessar <i data-lucide="arrow-right"></i>`;
         lucide.createIcons();
@@ -340,30 +349,28 @@ DOM.btnCancelProj.addEventListener('click', () => {
 // DASHBOARD
 // ==========================================
 async function loadProjects() {
-    DOM.projList.innerHTML = '<p class="subtitle"><i data-lucide="loader" class="rotating"></i> Sincronizando com a base de dados...</p>';
+    DOM.projList.innerHTML = '<p class="subtitle"><i data-lucide="loader" class="rotating"></i> Sincronizando projetos...</p>';
     lucide.createIcons();
     
     try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ 
-                action: "list-projects", 
-                email: state.user.email, 
-                session_token: sessionStorage.getItem('arara_session_token') 
-            }),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        // Usa GET para evitar CORS
+        const data = await apiGet({ 
+            action: 'list-projects', 
+            email: state.user.email,
+            token: sessionStorage.getItem('arara_session_token') || ''
         });
-        const data = await response.json();
         
-        if(data.ok && data.projects) {
-            state.projects = data.projects;
+        if(data.ok) {
+            state.projects = data.projects || [];
             renderDashboard();
         } else {
-            showToast("Falha ao ler projetos: " + data.error, "error");
+            showToast("Falha ao ler projetos: " + (data.error || 'erro desconhecido'), "error");
+            renderDashboard(); // Renderiza vazio
         }
     } catch(err) {
         console.error("Erro ao carregar projetos:", err);
         showToast("Falha de rede ao listar projetos.", "error");
+        renderDashboard();
     }
 }
 

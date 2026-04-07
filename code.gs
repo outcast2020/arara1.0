@@ -1446,12 +1446,21 @@ function doPost(e) {
 function doGet(e) {
   try {
     const action = e.parameter.action;
-    if (action === "list-projects") return handleListProjects(e.parameter.email);
     
-    // Fallback: renderizar UI simples informando versao running.
-    return HtmlService.createHtmlOutput("<h1>API Arara Ativa</h1><p>Versao 1.0 Rodando com Sucesso. Conquista de Setup do banco efetuada e valida.</p>");
+    if (action === "check-user") {
+      const data = { email: e.parameter.email };
+      return handleCheckUser(data);
+    }
+    
+    if (action === "list-projects") {
+      const data = { email: e.parameter.email, session_token: e.parameter.token };
+      return handleListProjects(data);
+    }
+    
+    // Fallback: Status da API
+    return HtmlService.createHtmlOutput("<h1>API Arara Ativa</h1><p>Versao 1.0 Rodando com Sucesso.</p>");
   } catch(error) {
-    return createJsonResponse({ ok: false, error: String(error) }, 500);
+    return createJsonResponse({ ok: false, error: String(error) });
   }
 }
 
