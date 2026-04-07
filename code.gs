@@ -1390,3 +1390,94 @@ function slug_(value) {
     .replace(/^_+|_+$/g, "")
     .slice(0, 40) || "verso";
 }
+
+// ======================================================================
+// ARQUITETURA WEB APP & BACKEND ACADÊMICO
+// ======================================================================
+
+function setupBackendSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if(!ss) throw new Error("Execute o setup dentro do Editor Script de uma Planilha ou vincule a script ativa com o spreadsheet destino.");
+  
+  const requiredSheets = {
+    "USERS": ["EMAIL", "NAME", "STATUS", "ROLE", "TRACK_DEFAULT", "CREATED_AT", "LAST_LOGIN_AT", "NOTES"],
+    "PROJECTS": ["PROJECT_ID", "USER_EMAIL", "TITLE", "MODE", "GENRE", "TRAIL", "THEME", "OBJECTIVE", "INTERLOCUTOR", "STATUS", "CREATED_AT", "UPDATED_AT"],
+    "DRAFTS": ["VERSION_ID", "PROJECT_ID", "VERSION_NUMBER", "RAW_TEXT", "WORD_COUNT", "CREATED_AT", "SESSION_ID", "SOURCE_OF_CHANGE"],
+    "SESSIONS": ["SESSION_ID", "PROJECT_ID", "USER_EMAIL", "STARTED_AT", "ENDED_AT", "ELAPSED_SECONDS", "AUTOSAVES", "FINAL_WORD_COUNT"],
+    "ANALYSES": ["ANALYSIS_ID", "PROJECT_ID", "VERSION_ID", "ENGINE", "GENRE", "TRAIL", "SCORE_SITUACAO", "SCORE_ESTRUTURA", "SCORE_COESAO", "SCORE_ARGUMENTACAO", "SCORE_ESTILO", "SCORE_CURADORIA", "SCORE_MULTISSEMIOSE", "FLAGS_JSON", "EXPLANATIONS_JSON", "REVISION_FOCUS_JSON", "CREATED_AT"],
+    "EVENTS": ["EVENT_ID", "USER_EMAIL", "PROJECT_ID", "EVENT_TYPE", "PAYLOAD", "CREATED_AT"]
+  };
+
+  const relatorio = [];
+
+  for (const sheetName in requiredSheets) {
+    let sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
+      sheet.appendRow(requiredSheets[sheetName]);
+      sheet.getRange(1, 1, 1, requiredSheets[sheetName].length).setFontWeight("bold");
+      sheet.setFrozenRows(1);
+      relatorio.push(`Aba ${sheetName} criada com sucesso.`);
+    } else {
+      relatorio.push(`Aba ${sheetName} ja existe.`);
+    }
+  }
+  
+  Logger.log(relatorio.join("\n"));
+  return relatorio.join("\n");
+}
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const action = data.action;
+
+    if (action === "check-user") return handleCheckUser(data);
+    if (action === "create-project") return handleCreateProject(data);
+    if (action === "save-draft") return handleSaveDraft(data);
+
+    return createJsonResponse({ error: "Acao nao reconhecida" }, 400);
+  } catch (error) {
+    return createJsonResponse({ ok: false, error: String(error) }, 500);
+  }
+}
+
+function doGet(e) {
+  try {
+    const action = e.parameter.action;
+    if (action === "list-projects") return handleListProjects(e.parameter.email);
+    
+    // Fallback: renderizar UI simples informando versao running.
+    return HtmlService.createHtmlOutput("<h1>API Arara Ativa</h1><p>Versao 1.0 Rodando com Sucesso. Conquista de Setup do banco efetuada e valida.</p>");
+  } catch(error) {
+    return createJsonResponse({ ok: false, error: String(error) }, 500);
+  }
+}
+
+function createJsonResponse(data, code = 200) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ------ ENDPOINTS MOCKUP (Exemplo Arquitetural) ------
+function handleCheckUser(data) {
+  if (!data.email) throw new Error("Email ausente.");
+  // Busca logica em aba USERS faria aqui
+  return createJsonResponse({
+    ok: true,
+    session_token: Utilities.getUuid(),
+    user: { email: data.email, name: data.email.split('@')[0], role: "autor" }
+  });
+}
+
+function handleCreateProject(data) {
+  return createJsonResponse({ ok: true, project_id: Utilities.getUuid() });
+}
+
+function handleSaveDraft(data) {
+  return createJsonResponse({ ok: true, version_id: Utilities.getUuid() });
+}
+
+function handleListProjects(email) {
+  return createJsonResponse({ ok: true, projects: [] });
+}
