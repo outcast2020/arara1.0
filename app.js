@@ -137,19 +137,35 @@ function showToast(msg, type = "info") {
 }
 
 function switchView(viewId) {
-    DOM.views.forEach(v => v.classList.remove('active'));
-    document.getElementById(viewId).classList.add('active');
-    
-    if(viewId !== 'view-login') {
+    // Re-query fresh a cada chamada, sem depender de cache
+    document.querySelectorAll('.view').forEach(v => {
+        v.classList.remove('active');
+        // Forçar display via style inline para sobrescrever qualquer CSS
+        if (v.id === 'view-login') {
+            v.style.display = viewId === 'view-login' ? 'flex' : 'none';
+        } else {
+            v.style.display = v.id === viewId ? 'block' : 'none';
+        }
+    });
+
+    const target = document.getElementById(viewId);
+    if (target) {
+        target.classList.add('active');
+        if (viewId === 'view-login') target.style.display = 'flex';
+        else target.style.display = 'block';
+    }
+
+    // Sidebar
+    if (viewId !== 'view-login') {
         DOM.sidebar.classList.remove('hidden');
     } else {
         DOM.sidebar.classList.add('hidden');
     }
 
-    // Update active state on sidebar
+    // Menu ativo
     document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
     const activeMenu = document.querySelector(`.menu-item[data-view="${viewId}"]`);
-    if(activeMenu) activeMenu.classList.add('active');
+    if (activeMenu) activeMenu.classList.add('active');
 }
 
 function generateId() {
