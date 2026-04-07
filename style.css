@@ -378,6 +378,12 @@ main {
     overflow: hidden;
 }
 
+/* CRÍTICO: esconde views com display explícito quando inativas */
+#view-login:not(.active),
+#view-editor:not(.active) {
+    display: none !important;
+}
+
 .login-container {
     padding: 3rem;
     width: 100%;
