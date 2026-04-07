@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARARA - Laboratório de Versos Semióticos</title>
+    <meta name="description" content="Oficina de Produção Textual, Escrita em Percurso e Modo Poético.">
+    <link rel="stylesheet" href="./style.css">
+    <link rel="icon" href="./imagem/favicon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div id="app" class="theme-dark">
+        <!-- Notificação Flutuante -->
+        <div id="toast" class="toast hidden"></div>
+
+        <!-- MENU LATERAL DA APLICAÇÃO (Visível após login) -->
+        <nav id="sidebar" class="sidebar hidden">
+            <div class="sidebar-header">
+                <img src="./imagem/logo_cordel_positivo.png" alt="Arara Logo" class="logo">
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#dashboard" class="menu-item active" data-view="view-dashboard"><i data-lucide="layout-dashboard"></i> Dashboard</a></li>
+                <li><a href="#new-project" class="menu-item" data-view="view-project-new"><i data-lucide="plus-circle"></i> Novo Projeto</a></li>
+                <!-- Configurações e Logout -->
+            </ul>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar"><i data-lucide="user"></i></div>
+                    <span id="user-display-name">Usuário</span>
+                </div>
+                <button id="btn-logout" class="btn-icon" title="Sair"><i data-lucide="log-out"></i></button>
+            </div>
+        </nav>
+
+        <main id="main-content">
+            <!-- TELA DE LOGIN -->
+            <section id="view-login" class="view active">
+                <div class="login-container glass-panel">
+                    <img src="./imagem/logo_cordel_color.png" alt="Logo Arara Color" class="login-logo floating">
+                    <h1>Bem-vindo ao ARARA</h1>
+                    <p class="subtitle">Seu laboratório autoral e poético.</p>
+                    
+                    <form id="form-login" class="animated-form">
+                        <div class="input-group">
+                            <i data-lucide="mail"></i>
+                            <input type="email" id="login-email" placeholder="Digite seu e-mail" required autocomplete="email">
+                        </div>
+                        <button type="submit" class="btn-primary">Acessar <i data-lucide="arrow-right"></i></button>
+                    </form>
+                    <div class="login-footer">Autenticação restrita e validada.</div>
+                </div>
+                <!-- Elementos decorativos (orbs) -->
+                <div class="orb orb-1"></div>
+                <div class="orb orb-2"></div>
+            </section>
+
+            <!-- DASHBOARD: ÁREA DO USUÁRIO -->
+            <section id="view-dashboard" class="view hidden">
+                <header class="view-header">
+                    <h2>Meus Projetos</h2>
+                    <p>Controle seus textos, projetos e evolução formativa.</p>
+                </header>
+
+                <div class="dashboard-stats">
+                    <div class="stat-card glass-card">
+                        <i data-lucide="folder-open"></i>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stat-projetos">0</span>
+                            <span class="stat-label">Projetos Ativos</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-card">
+                        <i data-lucide="clock"></i>
+                        <div class="stat-info">
+                            <span class="stat-value" id="stat-sessoes">0</span>
+                            <span class="stat-label">Sessões</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-card highlight-card">
+                        <i data-lucide="zap"></i>
+                        <div class="stat-info">
+                            <span class="stat-value">Evolução</span>
+                            <span class="stat-label">Modo Acadêmico</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="projects-container">
+                    <div class="projects-actions">
+                        <h3>Projetos Recentes</h3>
+                        <button class="btn-primary" id="btn-new-proj-dash"><i data-lucide="plus"></i> Novo Projeto</button>
+                    </div>
+                    <div id="projects-list" class="projects-grid">
+                        <!-- Lista de projetos renderizada via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- NOVO PROJETO -->
+            <section id="view-project-new" class="view hidden">
+                <header class="view-header">
+                    <h2>Iniciar Novo Projeto</h2>
+                    <p>Defina o contexto da sua escrita.</p>
+                </header>
+
+                <div class="form-container glass-panel">
+                    <form id="form-new-project">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="proj-title">Título do Projeto</label>
+                                <input type="text" id="proj-title" placeholder="Nomeie sua ideia" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="proj-mode">Modo de Escrita</label>
+                                <select id="proj-mode" required>
+                                    <option value="academico">Modo Acadêmico (Motor H2)</option>
+                                    <option value="poetico">Modo Poético (Clássico)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Campos Específicos Modo Acadêmico -->
+                        <div id="campos-academico" class="mode-fields">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="proj-genre">Gênero</label>
+                                    <select id="proj-genre">
+                                        <option value="artigo">Artigo de Opinião</option>
+                                        <option value="dissertativo">Texto Dissertativo-Argumentativo</option>
+                                        <option value="relato">Relato</option>
+                                        <option value="resenha">Resenha</option>
+                                        <option value="cronica">Crônica</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="proj-trail">Trilha Pedagógica</label>
+                                    <select id="proj-trail">
+                                        <option value="praia">Caminhada na Praia (Curto, < 75 pal.)</option>
+                                        <option value="corrida" selected>Corrida de Rua (Médio, até 500 pal.)</option>
+                                        <option value="himalaias">Ultramaratona (Longo, Multi-sessões)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="proj-theme">Tema Principal</label>
+                                    <input type="text" id="proj-theme" placeholder="Do que trata o texto?">
+                                </div>
+                                <div class="form-group">
+                                    <label for="proj-objective">Objetivo</label>
+                                    <input type="text" id="proj-objective" placeholder="Convencer, emocionar, relatar...">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="proj-interlocutor">Público / Interlocutor</label>
+                                <input type="text" id="proj-interlocutor" placeholder="Para quem você escreve?">
+                            </div>
+                        </div>
+
+                        <!-- Campos Específicos Modo Poético -->
+                        <div id="campos-poetico" class="mode-fields hidden">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="proj-sentimento">Sentimento Principal</label>
+                                    <input type="text" id="proj-sentimento" placeholder="Alegria, angústia...">
+                                </div>
+                                <div class="form-group">
+                                    <label for="proj-substantivo">Substantivo/Objeto</label>
+                                    <input type="text" id="proj-substantivo" placeholder="Mar, flor, tempo...">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="proj-ambiente">Ambiente</label>
+                                <input type="text" id="proj-ambiente" placeholder="Onde isso ocorre?">
+                            </div>
+                        </div>
+
+                        <div class="form-actions mt-4">
+                            <button type="button" class="btn-secondary" id="btn-cancel-project">Cancelar</button>
+                            <button type="submit" class="btn-primary"><i data-lucide="play"></i> Iniciar Escrita</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- EDITOR DE TEXTO -->
+            <section id="view-editor" class="view hidden">
+                <header class="editor-header">
+                    <div class="editor-title-area">
+                        <button class="btn-icon" id="btn-back-dash" title="Voltar"><i data-lucide="arrow-left"></i></button>
+                        <div>
+                            <h2 id="editor-title">Título do Projeto</h2>
+                            <span class="editor-meta" id="editor-meta-info">Modo Acadêmico • Trilha Corrida • Artigo</span>
+                        </div>
+                    </div>
+                    <div class="editor-actions">
+                        <span class="status-indicator" id="save-status"><i data-lucide="check-circle"></i> Salvo</span>
+                        <button class="btn-secondary" id="btn-history"><i data-lucide="history"></i> Histórico</button>
+                        <button class="btn-primary gradient-btn" id="btn-analyze"><i data-lucide="sparkles"></i> Analisar Motor H2</button>
+                    </div>
+                </header>
+
+                <div class="editor-layout">
+                    <!-- Text Area Principal -->
+                    <div class="editor-main glass-panel">
+                        <textarea id="main-textarea" placeholder="Deixe sua autoria fluir aqui..."></textarea>
+                        <div class="editor-footer-stats">
+                            <span id="word-count">0 palavras</span>
+                            <span id="session-time">00:00</span>
+                        </div>
+                    </div>
+
+                    <!-- Painel Lateral de Avaliação/Feedback (Motor H2) -->
+                    <aside class="editor-sidebar glass-panel" id="h2-panel">
+                        <div class="panel-header">
+                            <h3><i data-lucide="activity"></i> Diagnóstico H2</h3>
+                            <button class="btn-icon btn-sm" id="btn-close-h2"><i data-lucide="x"></i></button>
+                        </div>
+                        <div class="panel-content" id="h2-content">
+                            <div class="empty-state">
+                                <i data-lucide="microscope" class="large-icon"></i>
+                                <p>Escreva seu texto e clique em "Analisar" para receber feedback heurístico com base na BNCC.</p>
+                            </div>
+                            <!-- O diagnóstico será injetado aqui via JS -->
+                        </div>
+                    </aside>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1106 @@
+ESPECIFICAÇÃO TÉCNICO-PEDAGÓGICA
+EXPANSÃO DO ARARA PARA ÁREA AUTORAL COM MODO POÉTICO + MODO ACADÊMICO
+Versão de direcionamento para equipe sênior de Software e Educação
+
+======================================================================
+0. FINALIDADE DESTE DOCUMENTO
+======================================================================
+
+Este documento orienta a implementação de uma evolução ambiciosa do ecossistema ARARA / Laboratório Cordel 2.0, preservando o modo poético já existente e acrescentando:
+
+1) uma área autenticada de usuário, baseada em validação simples por e-mail contra a aba USERS de uma planilha Google Sheets;
+2) registro autoral por projeto e por versões de texto;
+3) continuidade de escrita em múltiplas sessões;
+4) trilhas de complexidade progressiva para produção textual;
+5) um modo acadêmico com Motor H2 (regras heurísticas + rubricas por gênero);
+6) uma camada opcional e modesta de IA para justificar avaliação e orientar revisão sem reescrever o texto do estudante.
+
+Este documento deve ser lido como especificação de produto, arquitetura, UX pedagógica, motor de avaliação e regras de governança.
+
+======================================================================
+1. PREMISSAS ESTRATÉGICAS
+======================================================================
+
+1.1. O sistema NÃO deve ser concebido como corretor automático tradicional.
+Ele deve funcionar como ambiente de autoria, percurso e reescrita.
+
+1.2. O sistema deve preservar o protagonismo do estudante/autor.
+A tecnologia deve apoiar planejamento, diagnóstico, reflexão e revisão, sem substituir decisão pedagógica nem autoria humana.
+
+1.3. O sistema deve operar por projetos.
+A unidade principal não é “envio isolado”, mas “projeto autoral”, com título, gênero, versões, sessões, indicadores e histórico.
+
+1.4. O modo poético deve permanecer ativo.
+A expansão não substitui a lógica já existente do ARARA; ela a amplia com camada de conta/autoria/continuidade.
+
+1.5. O modo acadêmico deve ser útil para Ensino Médio.
+O sistema deve se alinhar à BNCC no campo de produção de textos, argumentação, coesão, adequação às condições de produção e reflexão sobre escolhas linguísticas.
+
+1.6. A camada de IA deve ser opcional, modesta, auditável e subordinada ao motor heurístico.
+IA não é o coração da avaliação. O coração é o Motor H2, explicável, reprodutível e calibrável.
+
+======================================================================
+2. BASES PEDAGÓGICAS E NORMATIVAS
+======================================================================
+
+2.1. BNCC - eixo de escrita
+A implementação deve dialogar especialmente com:
+- EM13LP01: condições de produção, interlocução, circulação e adequação;
+- EM13LP02: recursos coesivos e organização lógico-discursiva;
+- EM13LP05: análise e avaliação de movimentos argumentativos;
+- EM13LP06: efeitos de sentido decorrentes de escolhas lexicais e ordenação;
+- EM13LP07: modalização e marcas de posição do enunciador;
+- EM13LP08: uso da sintaxe como recurso de construção de sentido;
+- EM13LP10: seleção de informações, dados e argumentos em fontes confiáveis;
+- EM13LP12: articulação entre verbal e outras semioses, quando aplicável;
+- EM13LGG303: debate qualificado, sustentação de posições e negociação de sentidos.
+
+2.2. Referencial MEC 2026 - IA na Educação
+A arquitetura e o produto devem incorporar como princípios:
+- supervisão humana;
+- centralidade da mediação pedagógica;
+- interpretação contextualizada dos resultados;
+- uso de IA como indicador/subsídio, não como diagnóstico definitivo;
+- governança;
+- proteção de dados;
+- transparência;
+- inclusão e equidade;
+- não substituição do professor por automações decisórias.
+
+2.3. Implicação prática
+Toda pontuação, feedback ou recomendação produzida pelo sistema deve ser tratada como apoio formativo.
+Nenhuma nota do sistema deve ser apresentada como “verdade final” sobre a qualidade do estudante.
+O sistema devolve:
+- indicadores;
+- justificativas;
+- focos de revisão;
+- trilhas de aprimoramento;
+mas não substitui avaliação docente nem julgamento autoral do usuário.
+
+======================================================================
+3. VISÃO DE PRODUTO
+======================================================================
+
+O produto final será uma aplicação web com frontend simples (HTML/CSS/JS), publicada preferencialmente em GitHub Pages, conectada a backend em Google Apps Script Web App e persistência principal em Google Sheets.
+
+A aplicação terá duas grandes áreas:
+A) Modo Poético
+B) Modo Acadêmico
+
+Ambas operam sobre:
+- autenticação simples por e-mail;
+- projetos;
+- rascunhos;
+- sessões;
+- histórico;
+- análise;
+- exportação;
+- log de uso.
+
+======================================================================
+4. ARQUITETURA RECOMENDADA
+======================================================================
+
+4.1. Frontend
+Tecnologia:
+- HTML5
+- CSS3
+- JavaScript vanilla ou framework mínimo
+- publicação em GitHub Pages
+
+Rotas/páginas mínimas:
+- /index.html -> login
+- /dashboard.html -> área do usuário
+- /project-new.html -> criação de projeto
+- /editor.html -> ambiente de escrita
+- /history.html -> histórico de versões
+- /progress.html -> indicadores e evolução
+- /admin-lite.html -> diagnóstico técnico básico (opcional)
+
+4.2. Backend
+Tecnologia:
+- Google Apps Script
+- deploy como Web App
+- respostas JSON
+- uso de doGet/doPost ou ContentService
+
+4.3. Persistência
+Fonte de verdade principal:
+- Google Sheets
+
+Integrações complementares:
+- Google Drive para exportações
+- Google Docs para templates, caso necessário
+- MailApp/GmailApp somente se houver notificações posteriores
+
+4.4. Planilhas recomendadas
+Planilha A: AUTH / USER DIRECTORY
+- aba USERS (obrigatória)
+- fonte de validação de entrada
+
+Planilha B: APP DATA
+Abas sugeridas:
+- PROJECTS
+- DRAFTS
+- SESSIONS
+- ANALYSES
+- FEEDBACK_LOG
+- EVENTS
+- CONFIG
+- GENRE_RUBRICS
+- CONNECTORS_DICTIONARY
+- LEXICON_STYLE
+- LEXICON_ARGUMENTATION
+- LEXICON_MODALIZATION
+
+4.5. Decisão arquitetural
+A autenticação fica no Apps Script.
+O frontend não deve acessar a planilha diretamente.
+Toda validação passa pelo backend.
+
+======================================================================
+5. REGRA DE ACESSO DO USUÁRIO
+======================================================================
+
+5.1. Requisito atual solicitado
+O acesso do usuário será permitido mediante validação simples do e-mail informado contra a aba USERS da planilha:
+Spreadsheet ID:
+130CvfT6mwv0gzYQgmrylg4Q0T5xRI918dms8A4yzqO8
+
+Aba:
+USERS
+
+5.2. Regra mínima de autenticação
+Fluxo base:
+1) usuário informa e-mail na tela de login;
+2) frontend chama backend /auth/check-user;
+3) backend consulta a aba USERS;
+4) se o e-mail existir e estiver ativo, backend autoriza sessão;
+5) backend devolve token de sessão temporário;
+6) frontend armazena token em sessionStorage ou cookie restrito.
+
+5.3. Regra de matching do e-mail
+Antes de comparar:
+- trim();
+- lowercase();
+- normalização Unicode;
+- remoção de espaços invisíveis.
+
+Comparar preferencialmente contra coluna nomeada EMAIL.
+
+5.4. Estrutura mínima esperada da aba USERS
+Colunas recomendadas:
+- EMAIL
+- NAME
+- STATUS
+- ROLE
+- TRACK_DEFAULT
+- CREATED_AT
+- LAST_LOGIN_AT
+- NOTES
+
+5.5. Regras de autorização
+Permitir login apenas se:
+- EMAIL encontrado;
+- STATUS = ACTIVE (ou equivalente configurável).
+
+5.6. Observação de segurança
+Esta autenticação é uma whitelist simples e atende ao requisito atual.
+Ela NÃO comprova posse do e-mail.
+Se futuramente houver necessidade de maior segurança, adicionar etapa 2:
+- OTP por e-mail
+ou
+- magic link.
+Mas isso NÃO deve ser requisito da primeira implementação, a menos que o patrocinador mude o escopo.
+
+5.7. Sessão
+Requisitos:
+- token assinado pelo backend;
+- expiração curta (ex.: 8 horas);
+- invalidação no logout;
+- renovação controlada.
+
+5.8. Token
+Não usar token “cego”.
+Usar assinatura HMAC com:
+- email
+- timestamp
+- expiration
+- hash/nonce
+
+Segredo em Script Properties.
+
+======================================================================
+6. ÁREA DO USUÁRIO E MODELO DE PROJETO
+======================================================================
+
+6.1. Unidade principal
+Cada texto pertence a um PROJETO.
+
+6.2. Campos mínimos de projeto
+- project_id
+- user_email
+- title
+- mode (poetico | academico)
+- genre
+- trail (praia | corrida | himalaias)
+- objective
+- interlocutor
+- theme
+- status (draft | active | paused | completed | archived)
+- current_version
+- created_at
+- updated_at
+
+6.3. Estrutura de versões
+Cada salvamento relevante deve gerar:
+- version_id
+- project_id
+- version_number
+- raw_text
+- word_count
+- created_at
+- session_id
+- manual_notes
+- source_of_change (manual | heuristic | ai_prompted)
+
+6.4. Sessões
+Uma sessão representa um período de trabalho contínuo.
+Campos:
+- session_id
+- project_id
+- user_email
+- started_at
+- ended_at
+- elapsed_seconds
+- client_events_count
+- autosaves_count
+- final_word_count
+- activity_type
+
+======================================================================
+7. TRILHAS PEDAGÓGICAS
+======================================================================
+
+7.1. Trilha 1 - CAMINHADA NA PRAIA
+Finalidade:
+- acolhimento;
+- familiarização;
+- primeira experiência de autoria acompanhada.
+
+Características:
+- pode ser feita apenas uma vez por usuário;
+- 1 parágrafo;
+- máximo 75 palavras;
+- retorno rápido;
+- baixa fricção.
+
+Objetivo pedagógico:
+- compreender situação de escrita;
+- produzir unidade temática mínima;
+- perceber coesão básica;
+- experimentar o sistema sem intimidação.
+
+Campos/guias:
+- tema
+- objetivo
+- interlocutor
+- parágrafo único
+
+Avaliação:
+- Situação de escrita
+- Unidade estrutural mínima
+- Coesão básica
+- Estilo essencial
+
+7.2. Trilha 2 - CORRIDA DE RUA
+Finalidade:
+- trilha principal de uso recorrente;
+- produção e reescrita em múltiplas sessões.
+
+Características:
+- até 500 palavras;
+- pode ser retomada em sessões diferentes;
+- registra tempo de trabalho;
+- registra evolução por indicador;
+- deve ser a trilha padrão do modo acadêmico.
+
+Avaliação:
+- Situação de escrita
+- Estrutura e progressão
+- Coesão
+- Argumentação
+- Estilo
+- Curadoria (quando aplicável)
+
+7.3. Trilha 3 - ULTRAMARATONA DOS HIMALAIAS
+Finalidade:
+- projetos longos;
+- ensaios, relatos expandidos, resenhas longas, textos híbridos, trabalhos escolares extensos.
+
+Características:
+- sem limite rígido de palavras;
+- múltiplas sessões;
+- checkpoints;
+- visão longitudinal;
+- histórico de melhoria entre versões.
+
+Avaliação:
+- todos os eixos da Corrida de Rua
+- consistência global
+- gestão de seções
+- profundidade argumentativa
+- persistência de revisão
+- opcionalmente multissemiose
+
+======================================================================
+8. MODO POÉTICO
+======================================================================
+
+8.1. Princípio
+Preservar o ARARA atual como modalidade poética.
+Não rebaixar a experiência poética a corretor textual.
+
+8.2. Expansão requerida
+O modo poético deve ganhar:
+- login por usuário;
+- projetos por título;
+- continuidade;
+- histórico de proto-versos;
+- retomada de criação;
+- log por usuário;
+- possibilidade de exportação ou recuperação de versões.
+
+8.3. Campos sugeridos para projeto poético
+- sentimento
+- substantivo
+- adjetivos
+- ambiente
+- verso autoral
+- notas do autor
+- referências poéticas acionadas
+- estado do poema (rascunho | maturando | concluído)
+
+8.4. Regra de UX
+A continuidade deve ser mais importante do que a finalização.
+O usuário deve poder:
+- começar;
+- interromper;
+- voltar;
+- comparar versões;
+- continuar o mesmo poema por título/projeto.
+
+======================================================================
+9. MODO ACADÊMICO - VISÃO GERAL
+======================================================================
+
+9.1. Nome funcional interno
+Modo Acadêmico / Oficina de Produção Textual / Escrita em Percurso.
+Equipe pode decidir o naming final depois.
+
+9.2. Objetivo
+Aprimorar escrita em fluxo, passo a passo, com indicadores objetivos e rubricas por gênero, em alinhamento com a BNCC.
+
+9.3. Gêneros prioritários da versão ambiciosa
+- artigo de opinião
+- relato
+- resenha
+- crônica
+- texto dissertativo-argumentativo
+
+9.4. Fluxo canônico do modo acadêmico
+1) definir situação de escrita;
+2) escolher gênero;
+3) escolher trilha;
+4) preencher mapa inicial;
+5) produzir rascunho;
+6) rodar Motor H2;
+7) receber pontuação por eixo;
+8) receber explicação diagnóstica;
+9) receber missão de revisão;
+10) reescrever;
+11) comparar evolução entre versões.
+
+======================================================================
+10. RUBRICA CENTRAL DE AVALIAÇÃO (1 A 5)
+======================================================================
+
+Escala comum:
+1 = ausente / inadequado
+2 = incipiente
+3 = suficiente
+4 = consistente
+5 = avançado
+
+Eixos:
+A) Situação de Escrita
+B) Estrutura e Progressão
+C) Coesão e Encadeamento
+D) Argumentação
+E) Estilo e Recursos Linguísticos
+F) Curadoria de Informação
+G) Multissemiose (apenas quando aplicável)
+
+======================================================================
+11. DETALHAMENTO DOS EIXOS
+======================================================================
+
+11.1. Situação de Escrita
+Avaliar:
+- gênero definido?
+- tema claro?
+- objetivo claro?
+- interlocutor definido?
+- registro compatível?
+
+Indicadores objetivos possíveis:
+- presença de metadados obrigatórios preenchidos;
+- aderência lexical mínima ao tema;
+- compatibilidade entre gênero escolhido e estrutura produzida;
+- desvio extremo de registro.
+
+11.2. Estrutura e Progressão
+Avaliar:
+- introdução existe?
+- desenvolvimento existe?
+- fechamento existe?
+- parágrafos têm função?
+- há progressão e não mera repetição?
+
+Indicadores objetivos:
+- contagem e tamanho de parágrafos;
+- presença de marcadores de abertura;
+- presença de fechamento;
+- progressão entre parágrafos por diversidade lexical e retomada temática.
+
+11.3. Coesão e Encadeamento
+Avaliar:
+- uso de conectores;
+- retomadas;
+- relações lógico-discursivas;
+- fluidez interfrásica e interparagrafal.
+
+Indicadores objetivos:
+- quantidade e variedade de conectores;
+- uso repetitivo demais do mesmo articulador;
+- densidade de pronomes e retomadas;
+- fragmentação sintática excessiva.
+
+11.4. Argumentação
+Avaliar:
+- tese;
+- razões;
+- exemplificação;
+- retomada;
+- contra-argumento;
+- conclusão.
+
+Indicadores objetivos:
+- presença de marcadores de tese;
+- presença de justificativas;
+- presença de evidência/exemplo;
+- presença de concessão/objeção;
+- presença de fecho argumentativo.
+
+11.5. Estilo e Recursos Linguísticos
+Avaliar:
+- precisão vocabular;
+- modalização;
+- adequação de tom;
+- voz autoral;
+- efeitos de sentido.
+
+Indicadores objetivos:
+- repetição lexical excessiva;
+- uso de intensificadores vazios;
+- densidade de adjetivação genérica;
+- verbos modais;
+- advérbios de posicionamento;
+- fórmulas empobrecidas.
+
+11.6. Curadoria de Informação
+Avaliar:
+- presença de repertório;
+- uso de dados/fontes;
+- integração entre dado e argumento;
+- fuga do senso comum.
+
+Indicadores objetivos:
+- presença de nomes próprios, obras, autores, dados, anos, referências;
+- citações de fontes;
+- conectores de sustentação (“segundo”, “de acordo com”, etc.);
+- coerência entre referência e argumento.
+
+11.7. Multissemiose
+Somente ativar quando a tarefa envolver:
+- imagem
+- infográfico
+- slide
+- vídeo
+- áudio
+- peça digital híbrida
+
+======================================================================
+12. MOTOR H2 - REGRAS + RUBRICAS POR GÊNERO
+======================================================================
+
+12.1. Definição
+Motor H2 = H1 + rubricas específicas por gênero.
+
+12.2. H1 (camada base)
+Inclui:
+- regex;
+- dicionários lexicais;
+- listas de conectores;
+- detectores de estrutura;
+- estatísticas de texto;
+- regras por tamanho/segmentação;
+- marcadores argumentativos básicos;
+- detectores de modalização;
+- listas de clichês e repetições excessivas.
+
+12.3. Camada H2 adicional
+Acrescenta:
+- rubricas por gênero;
+- regras de forma composicional;
+- peso específico por eixo e por gênero;
+- feedback diagnóstico por critério;
+- missões de revisão contextualizadas pelo gênero.
+
+12.4. Gênero: Artigo de Opinião
+Esperado:
+- tese explícita;
+- posicionamento;
+- argumentos;
+- algum repertório;
+- conclusão persuasiva.
+
+12.5. Gênero: Relato
+Esperado:
+- foco experiencial;
+- encadeamento temporal;
+- clareza da cena/situação;
+- densidade de observação;
+- fechamento interpretativo ou reflexivo.
+
+12.6. Gênero: Resenha
+Esperado:
+- apresentação da obra/objeto;
+- síntese;
+- avaliação;
+- justificativa da avaliação;
+- posicionamento fundamentado.
+
+12.7. Gênero: Crônica
+Esperado:
+- cena do cotidiano;
+- olhar singular;
+- densidade de linguagem;
+- concisão;
+- virada reflexiva ou irônica.
+
+12.8. Gênero: Texto dissertativo-argumentativo
+Esperado:
+- introdução com problema e tese;
+- desenvolvimento com argumentos organizados;
+- articulação lógica;
+- repertório;
+- fechamento consistente.
+
+12.9. Saída do Motor H2
+Estrutura JSON sugerida:
+{
+  "scores": {
+    "situacao_escrita": 4,
+    "estrutura_progressao": 3,
+    "coesao": 3,
+    "argumentacao": 2,
+    "estilo": 3,
+    "curadoria": 1
+  },
+  "genre_checks": {...},
+  "objective_metrics": {...},
+  "flags": [...],
+  "revision_focus": ["argumentacao", "curadoria"],
+  "explanations": [...],
+  "version_delta": {...}
+}
+
+======================================================================
+13. DICIONÁRIOS E HEURÍSTICAS
+======================================================================
+
+13.1. Dicionários mínimos
+- conectores aditivos
+- conectores adversativos
+- conectores causais
+- conectores conclusivos
+- conectores concessivos
+- conectores exemplificativos
+- marcadores de tese
+- marcadores de opinião
+- marcadores de impessoalização
+- marcadores de modalização
+- repertório de abertura/fechamento por gênero
+
+13.2. Regras de peso
+A equipe pedagógica deve definir pesos por gênero.
+Exemplo de referência inicial:
+- artigo de opinião: argumentação mais pesada;
+- relato: progressão + cena + foco narrativo;
+- resenha: síntese + avaliação;
+- crônica: voz + cena + efeito de sentido;
+- dissertativo: estrutura + coesão + argumento + curadoria.
+
+13.3. Figuras de linguagem
+Implementar apenas como “indícios”.
+Nunca devolver como certeza absoluta.
+Exemplos de saída:
+- “há indício de comparação”
+- “há imagem metafórica provável”
+- “há repetição enfática”
+- “há possível personificação”
+
+======================================================================
+14. FLUXO DE UX NO MODO ACADÊMICO
+======================================================================
+
+14.1. Etapa 1 - Situação de escrita
+Campos obrigatórios:
+- gênero
+- tema
+- objetivo
+- interlocutor
+- trilha
+
+14.2. Etapa 2 - Mapa inicial
+Campos:
+- ideia central
+- 2 ou 3 pontos de apoio
+- repertório provável
+- fecho provisório
+
+14.3. Etapa 3 - Rascunho
+Editor principal.
+
+14.4. Etapa 4 - Diagnóstico
+Mostrar:
+- nota 1 a 5 por eixo;
+- explicação curta por eixo;
+- indicadores objetivos;
+- foco de revisão.
+
+14.5. Etapa 5 - Missão de revisão
+Exemplo:
+- fortalecer tese;
+- variar articuladores;
+- acrescentar exemplo;
+- melhorar fechamento;
+- ajustar interlocutor.
+
+14.6. Etapa 6 - Reescrita
+Nova versão.
+
+14.7. Etapa 7 - Comparação
+Exibir:
+- antes / depois
+- evolução dos eixos
+- tempo investido
+- número de versões
+- o que melhorou
+- o que permanece frágil
+
+======================================================================
+15. CAMADA DE IA - PRINCÍPIO
+======================================================================
+
+15.1. Papel da IA
+A IA NÃO deve:
+- escrever o texto do aluno;
+- reescrever parágrafos automaticamente;
+- substituir a rubrica;
+- dar “resposta pronta”.
+
+A IA DEVE:
+- justificar por que determinado eixo recebeu tal avaliação;
+- explicar ao aluno por que revisar um ponto;
+- formular perguntas de revisão;
+- gerar checklist de reescrita;
+- apontar focos de melhoria;
+- converter diagnóstico em linguagem mais acolhedora ou mais técnica.
+
+15.2. Regra de ouro
+A IA deve operar como “camada de explicação e mediação”, não como “ghostwriter”.
+
+15.3. Saída ideal da IA
+Formato:
+- “por que revisar”
+- “o que observar”
+- “pergunta de reflexão”
+- “meta da próxima versão”
+
+15.4. Saídas proibidas
+- texto substituto completo;
+- parágrafo pronto;
+- conclusão pronta;
+- tese pronta;
+- redação pronta para copiar.
+
+======================================================================
+16. CAMADA DE IA - ARQUITETURA RECOMENDADA
+======================================================================
+
+16.1. Sequência correta
+1) Motor H2 roda primeiro
+2) IA recebe apenas:
+   - eixo(s) com nota baixa;
+   - trechos relevantes;
+   - indicadores objetivos;
+   - gênero;
+   - trilha;
+3) IA devolve apenas mediação diagnóstica.
+
+16.2. Política de minimização
+Nunca enviar ao provedor externo:
+- e-mail do aluno;
+- nome completo;
+- identificadores pessoais;
+- metadados sensíveis desnecessários.
+
+16.3. Sanitização antes de IA
+- remover e-mail;
+- remover nome;
+- remover IDs;
+- truncar contexto quando possível;
+- enviar apenas o necessário.
+
+16.4. Modo de operação
+A IA deve ser desligável por feature flag:
+- AI_LAYER_ENABLED = true/false
+
+16.5. Logging
+Registrar:
+- modelo usado
+- prompt version
+- tempo de resposta
+- tamanho da entrada
+- tamanho da saída
+- custo estimado
+- fallback acionado ou não
+
+======================================================================
+17. CAMADA DE IA - MODELO MODESTO / GRATUITO
+======================================================================
+
+17.1. Recomendação geral
+Para prototipação modesta, a equipe pode avaliar Gemini 2.5 Flash-Lite como opção pragmática de baixo custo e acesso gratuito, com rate limits de free tier suficientemente razoáveis para protótipo e uso controlado.
+
+17.2. Advertência crítica
+Se a equipe usar Gemini Free Tier, deve considerar desde o início a restrição de privacidade e governança:
+- no nível gratuito, o conteúdo pode ser usado para melhorar produtos do provedor;
+- por isso, NÃO enviar textos identificáveis de estudantes nem dados pessoais no modo gratuito;
+- usar apenas com anonimização e em contexto de prototipagem ou ambientes consentidos.
+
+17.3. Política recomendada
+- Produção padrão: IA desligada por default ou com prompts desidentificados;
+- Piloto controlado: IA ligada apenas para textos anonimizados;
+- Ambiente sensível: usar apenas heurística H2 até que exista solução com governança adequada.
+
+17.4. Alternativa operacional
+A equipe pode manter a versão 1 com:
+- Motor H2 completo
+- IA apenas como módulo experimental interno, não padrão.
+
+======================================================================
+18. ENDPOINTS DE BACKEND SUGERIDOS
+======================================================================
+
+18.1. Auth
+POST /auth/check-user
+Entrada:
+{
+  "email": "..."
+}
+Saída:
+{
+  "ok": true,
+  "session_token": "...",
+  "user": {
+    "email": "...",
+    "name": "...",
+    "role": "..."
+  }
+}
+
+POST /auth/logout
+
+GET /auth/session
+
+18.2. Projects
+POST /projects/create
+GET /projects/list
+GET /projects/get?id=...
+POST /projects/update
+POST /projects/archive
+
+18.3. Drafts / versions
+POST /drafts/save
+GET /drafts/list?project_id=...
+GET /drafts/get?version_id=...
+
+18.4. Sessions
+POST /sessions/start
+POST /sessions/ping
+POST /sessions/end
+
+18.5. Analysis
+POST /analysis/run-heuristic
+POST /analysis/run-ai-explainer
+GET /analysis/history?project_id=...
+
+18.6. Export
+POST /export/pdf
+POST /export/doc
+
+======================================================================
+19. MODELO DE DADOS SUGERIDO
+======================================================================
+
+19.1. Aba PROJECTS
+- PROJECT_ID
+- USER_EMAIL
+- TITLE
+- MODE
+- GENRE
+- TRAIL
+- THEME
+- OBJECTIVE
+- INTERLOCUTOR
+- STATUS
+- CREATED_AT
+- UPDATED_AT
+
+19.2. Aba DRAFTS
+- VERSION_ID
+- PROJECT_ID
+- VERSION_NUMBER
+- RAW_TEXT
+- WORD_COUNT
+- CREATED_AT
+- SESSION_ID
+- SOURCE_OF_CHANGE
+
+19.3. Aba SESSIONS
+- SESSION_ID
+- PROJECT_ID
+- USER_EMAIL
+- STARTED_AT
+- ENDED_AT
+- ELAPSED_SECONDS
+- AUTOSAVES
+- FINAL_WORD_COUNT
+
+19.4. Aba ANALYSES
+- ANALYSIS_ID
+- PROJECT_ID
+- VERSION_ID
+- ENGINE (H1 | H2 | AI)
+- GENRE
+- TRAIL
+- SCORE_SITUACAO
+- SCORE_ESTRUTURA
+- SCORE_COESAO
+- SCORE_ARGUMENTACAO
+- SCORE_ESTILO
+- SCORE_CURADORIA
+- SCORE_MULTISSEMIOSE
+- FLAGS_JSON
+- EXPLANATIONS_JSON
+- REVISION_FOCUS_JSON
+- CREATED_AT
+
+19.5. Aba EVENTS
+- EVENT_ID
+- USER_EMAIL
+- PROJECT_ID
+- EVENT_TYPE
+- PAYLOAD
+- CREATED_AT
+
+======================================================================
+20. REQUISITOS DE UX E UI
+======================================================================
+
+20.1. Princípio visual
+Frontend simples, rápido, legível, mobile-first.
+
+20.2. Requisitos mínimos
+- autosave visível;
+- feedback de estado (“salvo”, “analisando”, “sessão retomada”);
+- histórico acessível;
+- progresso por eixo;
+- linguagem não punitiva;
+- opção de comparar versões;
+- navegação clara entre projeto e editor.
+
+20.3. Tom do sistema
+No modo acadêmico:
+- firme, claro, não humilhante.
+No modo poético:
+- acolhedor, inspirador, não escolarizante demais.
+
+20.4. Acessibilidade
+- contraste adequado;
+- tipografia legível;
+- sem dependência exclusiva de cor;
+- navegação por teclado;
+- feedback textual e não apenas visual.
+
+======================================================================
+21. LOGS E ANALYTICS PEDAGÓGICOS
+======================================================================
+
+Registrar:
+- início e fim de sessão;
+- número de versões;
+- tempo total por projeto;
+- tempo total por trilha;
+- eixos mais frágeis;
+- eixos que mais melhoraram;
+- uso ou não da camada de IA;
+- taxa de abandono por etapa;
+- taxa de conclusão por trilha.
+
+Objetivo:
+avaliar não só o texto, mas o processo.
+
+======================================================================
+22. GOVERNANÇA, PRIVACIDADE E ÉTICA
+======================================================================
+
+22.1. Regras mínimas
+- princípio de minimização de dados;
+- não expor a planilha ao frontend;
+- não trafegar dados pessoais desnecessários;
+- logs com cuidado;
+- consentimento adequado se houver uso de IA externa;
+- textos enviados a terceiros apenas desidentificados.
+
+22.2. Regra educacional
+Resultados automáticos são indicadores, não diagnósticos fechados.
+
+22.3. Regra de explicabilidade
+Sempre que possível, o sistema deve conseguir dizer:
+- qual indicador foi acionado;
+- por que uma nota foi atribuída;
+- qual evidência textual sustentou a observação.
+
+======================================================================
+23. FASEAMENTO DE ENTREGA
+======================================================================
+
+FASE 1 - Núcleo estrutural
+- login por e-mail via aba USERS
+- dashboard
+- criação/listagem de projetos
+- editor
+- autosave
+- versões
+- trilhas
+- modo poético com histórico
+- modo acadêmico com metadados de situação de escrita
+
+FASE 2 - Motor H2
+- heurísticas base
+- rubricas por gênero
+- pontuação 1 a 5
+- explicações diagnósticas
+- missão de revisão
+- painel de progresso
+
+FASE 3 - IA opcional
+- feature flag
+- prompts controlados
+- saída sem reescrita
+- logs
+- anonimização
+- avaliação de uso em piloto
+
+FASE 4 - Consolidação
+- exportação avançada
+- comparador de versões
+- gráficos
+- refinamento de rubricas
+- calibração pedagógica com corpus real anonimamente avaliado
+
+======================================================================
+24. CRITÉRIOS DE ACEITE
+======================================================================
+
+24.1. Acesso
+- usuário listado em USERS consegue entrar;
+- usuário não listado é barrado;
+- sessão expira corretamente.
+
+24.2. Projetos
+- criar, retomar, pausar, concluir e arquivar;
+- manter histórico íntegro.
+
+24.3. Modo poético
+- permitir continuidade de proto-versos por projeto/título;
+- recuperar versões.
+
+24.4. Modo acadêmico
+- suportar trilhas;
+- aplicar Motor H2;
+- devolver notas por eixo;
+- mostrar justificativa;
+- sugerir foco de revisão sem escrever pelo aluno.
+
+24.5. IA opcional
+- só roda se ativada;
+- só recebe dados minimizados;
+- não devolve texto pronto;
+- registra uso.
+
+======================================================================
+25. DECISÕES DE PROJETO JÁ TOMADAS NESTE DOCUMENTO
+======================================================================
+
+A) arquitetura preferencial:
+GitHub Pages + Apps Script + Google Sheets
+
+B) autenticação inicial:
+whitelist por e-mail na aba USERS
+
+C) unidade de trabalho:
+projeto autoral
+
+D) modo acadêmico:
+Motor H2 = regras + rubricas por gênero
+
+E) trilhas:
+- Caminhada na Praia
+- Corrida de Rua
+- Ultramaratona dos Himalaias
+
+F) IA:
+opcional, modesta, explicativa, sem reescrita automática
+
+======================================================================
+26. RECOMENDAÇÃO FINAL À EQUIPE
+======================================================================
+
+Construir primeiro um produto forte sem depender de IA.
+O valor do sistema deve se sustentar integralmente em:
+- fluxo de escrita;
+- histórico por projeto;
+- rubricas;
+- heurísticas;
+- comparação entre versões;
+- progressão formativa.
+
+A IA deve entrar apenas como camada complementar de mediação diagnóstica.
+Se a IA falhar, ficar indisponível ou for desligada por governança, o produto ainda precisa continuar pedagogicamente valioso.
+
+Fim do documento.
