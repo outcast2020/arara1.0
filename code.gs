@@ -1465,20 +1465,24 @@ function handleCheckUser(data) {
   const searchEmail = String(data.email).trim().toLowerCase();
   
   try {
-    // Conforme Especificação
     const ss = SpreadsheetApp.openById("130CvfT6mwv0gzYQgmrylg4Q0T5xRI918dms8A4yzqO8");
-    const sheet = ss.getSheetByName("USERS");
+    const sheets = ss.getSheets();
     
-    if (!sheet) throw new Error("Aba USERS nao encontrada na planilha definida.");
+    // Busca flexível pela aba (USERS, Users, usuarios, etc)
+    const sheet = sheets.find(s => /users|usuarios|usuários/i.test(s.getName()));
+    if (!sheet) throw new Error("Aba USERS ou Usuarios nao encontrada na planilha definida.");
     
     const rows = sheet.getDataRange().getValues();
+    if (rows.length < 1) throw new Error("A planilha vazia.");
+    
     const headers = rows[0];
     
-    const emailIdx = headers.findIndex(h => String(h).trim().toUpperCase() === "EMAIL");
-    const nameIdx = headers.findIndex(h => String(h).trim().toUpperCase() === "NAME");
-    const statusIdx = headers.findIndex(h => String(h).trim().toUpperCase() === "STATUS");
+    // Busca flexível pelas colunas
+    const emailIdx = headers.findIndex(h => /email|e-mail/i.test(String(h)));
+    const nameIdx = headers.findIndex(h => /name|nome/i.test(String(h)));
+    const statusIdx = headers.findIndex(h => /status|estado|ativo/i.test(String(h)));
     
-    if (emailIdx === -1) throw new Error("Coluna EMAIL nao encontrada.");
+    if (emailIdx === -1) throw new Error("Coluna com nome de EMAIL ou E-MAIL nao encontrada.");
     
     let isAuthorized = false;
     let userName = searchEmail.split('@')[0];
@@ -1487,7 +1491,8 @@ function handleCheckUser(data) {
        const rowEmail = String(rows[i][emailIdx] || "").trim().toLowerCase();
        if (rowEmail === searchEmail) {
           const status = statusIdx !== -1 ? String(rows[i][statusIdx]).trim().toUpperCase() : "ACTIVE";
-          if (status !== "INATIVE" && status !== "INACTIVE") {
+          
+          if (status !== "INACTIVE" && status !== "INATIVO" && status !== "BLOQUEADO") {
              isAuthorized = true;
              if (nameIdx !== -1 && rows[i][nameIdx]) userName = String(rows[i][nameIdx]);
           }
@@ -1502,16 +1507,15 @@ function handleCheckUser(data) {
          user: { email: searchEmail, name: userName, role: "autor" }
        });
     } else {
-       return createJsonResponse({ ok: false, error: "Usuario inativo ou nao encontrado na whitelist (USERS)." });
+       return createJsonResponse({ ok: false, error: "Usuario inativo ou nao encontrado na aba de usuários." });
     }
     
   } catch(err) {
-    throw new Error("Falha ao comunicar com Spreadsheet de Autenticacao: " + err.message);
+    throw new Error("Falha ao comunicar com Spreadsheet: " + err.message);
   }
 }
 
 function handleCreateProject(data) {
-  // Poderia salvar na ActiveSpreadsheet
   return createJsonResponse({ ok: true, project_id: Utilities.getUuid() });
 }
 
