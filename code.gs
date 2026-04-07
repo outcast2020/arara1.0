@@ -1465,12 +1465,12 @@ function handleCheckUser(data) {
   const searchEmail = String(data.email).trim().toLowerCase();
   
   try {
-    const ss = SpreadsheetApp.openById("130CvfT6mwv0gzYQgmrylg4Q0T5xRI918dms8A4yzqO8");
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheets = ss.getSheets();
     
-    // Busca flexível pela aba (USERS, Users, usuarios, etc)
+    // Busca flexível pela aba (USERS, Users, usuarios, etc) trazida via IMPORTRANGE
     const sheet = sheets.find(s => /users|usuarios|usuários/i.test(s.getName()));
-    if (!sheet) throw new Error("Aba USERS ou Usuarios nao encontrada na planilha definida.");
+    if (!sheet) throw new Error("Aba USERS ou Usuarios nao encontrada na planilha local do Arara.");
     
     const rows = sheet.getDataRange().getValues();
     if (rows.length < 1) throw new Error("A planilha vazia.");
