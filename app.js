@@ -165,7 +165,7 @@ function formatTime(seconds) {
 // ==========================================
 // CONFIGURATION
 // ==========================================
-const API_URL = "https://script.google.com/macros/s/AKfycbyOPtdl9goveBIMkuDNvboPsQ0qsRkzviZBMoZAl0zZxpy1jdNLNU8tBCJvG3gF_W0foA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwxLCF77GvrUbqhJQhLAk1hEMbAjA5JJfTUfNEomW_o4rM9Q1GO97pxUjHVsSraYWh3OA/exec";
 
 // Helper: GET request (sem CORS preflight — seguro para Apps Script)
 function apiGet(params) {
