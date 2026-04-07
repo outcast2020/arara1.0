@@ -183,12 +183,35 @@ function formatTime(seconds) {
 // ==========================================
 const API_URL = "https://script.google.com/macros/s/AKfycbwxLCF77GvrUbqhJQhLAk1hEMbAjA5JJfTUfNEomW_o4rM9Q1GO97pxUjHVsSraYWh3OA/exec";
 
-// Helper: GET request (sem CORS preflight — seguro para Apps Script)
+// Helper: GET via JSONP para contornar CORS do Apps Script
 function apiGet(params) {
-    const query = Object.entries(params)
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-        .join('&');
-    return fetch(`${API_URL}?${query}`, { method: 'GET' }).then(r => r.json());
+    return new Promise((resolve, reject) => {
+        const callbackName = '_araraCallback_' + Date.now();
+        const query = Object.entries({...params, callback: callbackName})
+            .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+            .join('&');
+        
+        const script = document.createElement('script');
+        const timeout = setTimeout(() => {
+            cleanup();
+            reject(new Error('Timeout na requisição'));
+        }, 10000);
+        
+        function cleanup() {
+            clearTimeout(timeout);
+            delete window[callbackName];
+            if (script.parentNode) script.parentNode.removeChild(script);
+        }
+        
+        window[callbackName] = function(data) {
+            cleanup();
+            resolve(data);
+        };
+        
+        script.src = `${API_URL}?${query}`;
+        script.onerror = () => { cleanup(); reject(new Error('Falha ao carregar script')); };
+        document.head.appendChild(script);
+    });
 }
 
 // Helper: POST request (para operações de escrita)
