@@ -92,22 +92,60 @@ function formatTime(seconds) {
 }
 
 // ==========================================
-// AUTH & LOGIN (MOCK)
+// CONFIGURATION
 // ==========================================
-DOM.formLogin.addEventListener('submit', (e) => {
+const API_URL = "https://script.google.com/macros/s/AKfycbwgWFXnyZNLL35ha-WI1-wuCUYJNGQ1-f8_ioBjQtNXuFxT0AEeqWOMSCcLkYWznEKnyg/exec";
+
+// ==========================================
+// AUTH & LOGIN
+// ==========================================
+DOM.formLogin.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = DOM.loginEmail.value.trim();
+    const btn = DOM.formLogin.querySelector('button');
+    const originalText = btn.innerHTML;
     
-    // Mock Validation against 'USERS' sheet rule
-    if(email.length > 3 && email.includes('@')) {
+    if(email.length < 3 || !email.includes('@')) {
+        return showToast("E-mail invalido.", "error");
+    }
+
+    btn.innerHTML = `<i data-lucide="loader" class="rotating"></i> Validando...`;
+    lucide.createIcons();
+    
+    try {
+        // Requisicao real para o Apps Script
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: "check-user", email: email }),
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8" // Trick para evitar preflight (CORS) estrito
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.ok) {
+            state.user = data.user;
+            DOM.userDisplayName.textContent = state.user.name;
+            showToast(`Bem-vindo, ${state.user.name}!`, "success");
+            loadMockData(); // mantemos p/ MVP front (projetos)
+            renderDashboard();
+            switchView('view-dashboard');
+        } else {
+            showToast("Acesso negado: e-mail nao reconhecido na aba USERS.", "error");
+        }
+    } catch (err) {
+        console.warn("Erro ao contactar a API real:", err);
+        // Fallback em caso de falha de teste local sem HTTPS real
+        showToast("Conexao falhou. Acessando modo offline fallback...", "warning");
         state.user = { email, name: email.split('@')[0] };
         DOM.userDisplayName.textContent = state.user.name;
-        showToast("Login realizado com sucesso!", "success");
-        loadMockData(); // Load local storage or mock
+        loadMockData();
         renderDashboard();
         switchView('view-dashboard');
-    } else {
-        showToast("E-mail não autorizado.", "error");
+    } finally {
+        btn.innerHTML = originalText;
+        lucide.createIcons();
     }
 });
 
