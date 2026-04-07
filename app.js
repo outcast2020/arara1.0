@@ -181,7 +181,7 @@ function formatTime(seconds) {
 // ==========================================
 // CONFIGURATION
 // ==========================================
-const API_URL = "https://script.google.com/macros/s/AKfycbwxLCF77GvrUbqhJQhLAk1hEMbAjA5JJfTUfNEomW_o4rM9Q1GO97pxUjHVsSraYWh3OA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzEq0ohydpiFWrlXXiAW0acToijB11Snhp3-5cyteiKDtD1Rgd6sukqCVXE-jIvzV6mFQ/exec";
 
 // Helper: GET via JSONP para contornar CORS do Apps Script
 function apiGet(params) {
