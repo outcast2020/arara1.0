@@ -1435,6 +1435,7 @@ function doPost(e) {
     if (action === "check-user") return handleCheckUser(data);
     if (action === "create-project") return handleCreateProject(data);
     if (action === "save-draft") return handleSaveDraft(data);
+    if (action === "list-projects") return handleListProjects(data);
 
     return createJsonResponse({ error: "Acao nao reconhecida" }, 400);
   } catch (error) {
