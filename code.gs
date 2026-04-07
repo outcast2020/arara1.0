@@ -1515,14 +1515,103 @@ function handleCheckUser(data) {
   }
 }
 
+// ------ ENDPOINTS (Persistência Real) ------
+function getSheet_(name) {
+  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+}
+
 function handleCreateProject(data) {
-  return createJsonResponse({ ok: true, project_id: Utilities.getUuid() });
+  try {
+     const sheet = getSheet_('PROJECTS');
+     if(!sheet) throw new Error("Aba PROJECTS não existe.");
+     
+     const pId = data.project.id || Utilities.getUuid();
+     const p = data.project;
+     
+     sheet.appendRow([
+        pId, data.email, p.title, p.mode, 
+        p.meta.genre || '', p.meta.trail || '', p.meta.theme || '',
+        p.meta.objective || '', p.meta.interlocutor || '', 'ACTIVE',
+        new Date(), new Date()
+     ]);
+     return createJsonResponse({ ok: true, project_id: pId });
+  } catch(e) {
+     return createJsonResponse({ ok: false, error: e.toString() });
+  }
 }
 
 function handleSaveDraft(data) {
-  return createJsonResponse({ ok: true, version_id: Utilities.getUuid() });
+  try {
+     const sheet = getSheet_('DRAFTS');
+     if(!sheet) throw new Error("Aba DRAFTS não existe.");
+     
+     const vId = Utilities.getUuid();
+     
+     sheet.appendRow([
+        vId, data.project_id, data.version_number || 1, data.content, data.wordCount || 0, new Date(), data.session_token || '', 'USER'
+     ]);
+     
+     // Atualiza a coluna UPDATED_AT em PROJECTS
+     const projSheet = getSheet_('PROJECTS');
+     if(projSheet) {
+        const rows = projSheet.getDataRange().getValues();
+        for(let i=1; i<rows.length; i++) {
+           if(rows[i][0] === data.project_id) {
+              projSheet.getRange(i+1, 12).setValue(new Date()); // Col L
+              break;
+           }
+        }
+     }
+     
+     return createJsonResponse({ ok: true, version_id: vId });
+  } catch(e) {
+     return createJsonResponse({ ok: false, error: e.toString() });
+  }
 }
 
-function handleListProjects(email) {
-  return createJsonResponse({ ok: true, projects: [] });
+function handleListProjects(data) {
+  try {
+     const sheet = getSheet_('PROJECTS');
+     if(!sheet) return createJsonResponse({ ok: true, projects: [] });
+     
+     const rows = sheet.getDataRange().getValues();
+     const projects = [];
+     
+     for(let i=1; i<rows.length; i++) {
+        if(String(rows[i][1]).trim().toLowerCase() === String(data.email).trim().toLowerCase() && rows[i][9] !== 'DELETED') {
+           projects.push({
+              id: rows[i][0],
+              title: rows[i][2],
+              mode: rows[i][3],
+              meta: { genre: rows[i][4], trail: rows[i][5] },
+              updatedAt: rows[i][11],
+              content: '' 
+           });
+        }
+     }
+     
+     // Buscar último conteúdo em DRAFTS
+     const draftSheet = getSheet_('DRAFTS');
+     if(draftSheet && projects.length > 0) {
+        const dRows = draftSheet.getDataRange().getValues();
+        for(let p of projects) {
+            let latestDraft = '';
+            let latestTime = 0;
+            for(let j=1; j<dRows.length; j++) {
+               if(dRows[j][1] === p.id) {
+                   const cTime = new Date(dRows[j][5]).getTime();
+                   if(cTime > latestTime) {
+                       latestTime = cTime;
+                       latestDraft = dRows[j][3];
+                   }
+               }
+            }
+            p.content = latestDraft;
+        }
+     }
+     
+     return createJsonResponse({ ok: true, projects });
+  } catch(e) {
+     return createJsonResponse({ ok: false, error: e.toString() });
+  }
 }

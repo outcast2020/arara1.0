@@ -203,9 +203,8 @@ DOM.formLogin.addEventListener('submit', async (e) => {
             DOM.userDisplayName.textContent = state.user.name;
             
             showToast("Usuário validado com sucesso!", "success");
-            loadMockData();
-            renderDashboard();
             switchView('view-dashboard');
+            loadProjects(); // Carrega da nuvem
             
         } else {
             showToast("Acesso negado: e-mail não listado na aba USERS.", "error");
@@ -295,10 +294,42 @@ DOM.formNewProj.addEventListener('submit', (e) => {
         };
     }
 
-    state.projects.push(newProject);
-    showToast("Projeto criado!", "success");
-    DOM.formNewProj.reset();
-    openEditor(newProject);
+    const btn = DOM.formNewProj.querySelector('button[type="submit"]');
+    const originalBtn = btn.innerHTML;
+    btn.innerHTML = `<i data-lucide="loader" class="rotating"></i> Criando...`;
+    lucide.createIcons();
+
+    // Requisicao real de criação
+    fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ 
+            action: "create-project", 
+            email: state.user.email,
+            session_token: sessionStorage.getItem('arara_session_token'),
+            project: newProject
+        }),
+        headers: { "Content-Type": "text/plain;charset=utf-8" }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.ok) {
+            newProject.id = data.project_id; // Pega o ID gerado no Google Sheets
+            state.projects.push(newProject);
+            showToast("Projeto criado na nuvem!", "success");
+            DOM.formNewProj.reset();
+            openEditor(newProject);
+        } else {
+            showToast("Erro do servidor: " + data.error, "error");
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showToast("Falha na rede ao criar projeto.", "error");
+    })
+    .finally(() => {
+        btn.innerHTML = originalBtn;
+        lucide.createIcons();
+    });
 });
 
 DOM.btnCancelProj.addEventListener('click', () => {
@@ -308,20 +339,31 @@ DOM.btnCancelProj.addEventListener('click', () => {
 // ==========================================
 // DASHBOARD
 // ==========================================
-function loadMockData() {
-    if(state.projects.length === 0) {
-        state.projects = [
-            {
-                id: 'p1', title: 'A Importância da Leitura', mode: 'academico', 
-                content: 'A leitura é fundamental...', 
-                meta: { trail: 'corrida', genre: 'artigo' }
-            },
-            {
-                id: 'p2', title: 'O silêncio do mar', mode: 'poetico', 
-                content: 'Um mar denso sob o tempo...', 
-                meta: {}
-            }
-        ];
+async function loadProjects() {
+    DOM.projList.innerHTML = '<p class="subtitle"><i data-lucide="loader" class="rotating"></i> Sincronizando com a base de dados...</p>';
+    lucide.createIcons();
+    
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ 
+                action: "list-projects", 
+                email: state.user.email, 
+                session_token: sessionStorage.getItem('arara_session_token') 
+            }),
+            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        });
+        const data = await response.json();
+        
+        if(data.ok && data.projects) {
+            state.projects = data.projects;
+            renderDashboard();
+        } else {
+            showToast("Falha ao ler projetos: " + data.error, "error");
+        }
+    } catch(err) {
+        console.error("Erro ao carregar projetos:", err);
+        showToast("Falha de rede ao listar projetos.", "error");
     }
 }
 
@@ -380,7 +422,7 @@ DOM.btnBackDash.addEventListener('click', () => {
     switchView('view-dashboard');
 });
 
-// Auto-Save Mock
+// Auto-Save Real
 DOM.mainTextarea.addEventListener('input', () => {
     updateWordCount();
     
@@ -391,11 +433,34 @@ DOM.mainTextarea.addEventListener('input', () => {
     state.saveTimer = setTimeout(() => {
         if(state.currentProject) {
             state.currentProject.content = DOM.mainTextarea.value;
-            DOM.saveStatus.innerHTML = `<i data-lucide="check-circle"></i> Salvo na nuvem`;
-            DOM.saveStatus.classList.replace('saving', 'saved');
-            lucide.createIcons();
+            const wordC = DOM.mainTextarea.value.trim().split(/\s+/).length;
+            
+            fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    action: "save-draft", 
+                    session_token: sessionStorage.getItem('arara_session_token'),
+                    project_id: state.currentProject.id,
+                    content: state.currentProject.content,
+                    wordCount: wordC
+                }),
+                headers: { "Content-Type": "text/plain;charset=utf-8" }
+            }).then(res => res.json()).then(data => {
+                if(data.ok) {
+                    DOM.saveStatus.innerHTML = `<i data-lucide="check-circle"></i> Salvo na nuvem`;
+                    DOM.saveStatus.classList.replace('saving', 'saved');
+                    lucide.createIcons();
+                } else {
+                    DOM.saveStatus.innerHTML = `<i data-lucide="alert-circle"></i> Erro ao salvar`;
+                    DOM.saveStatus.classList.replace('saving', 'error');
+                    lucide.createIcons();
+                }
+            }).catch(err => {
+                DOM.saveStatus.innerHTML = `<i data-lucide="wifi-off"></i> Offline (Salvo local)`;
+                lucide.createIcons();
+            });
         }
-    }, 1000);
+    }, 1500); // 1.5s de debounce para evitar flood no Google Apps Script
 });
 
 function updateWordCount() {
