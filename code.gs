@@ -1459,18 +1459,59 @@ function createJsonResponse(data, code = 200) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ------ ENDPOINTS MOCKUP (Exemplo Arquitetural) ------
+// ------ ENDPOINTS (Integração Base) ------
 function handleCheckUser(data) {
-  if (!data.email) throw new Error("Email ausente.");
-  // Busca logica em aba USERS faria aqui
-  return createJsonResponse({
-    ok: true,
-    session_token: Utilities.getUuid(),
-    user: { email: data.email, name: data.email.split('@')[0], role: "autor" }
-  });
+  if (!data.email) throw new Error("Email ausente no JSON.");
+  const searchEmail = String(data.email).trim().toLowerCase();
+  
+  try {
+    // Conforme Especificação
+    const ss = SpreadsheetApp.openById("130CvfT6mwv0gzYQgmrylg4Q0T5xRI918dms8A4yzqO8");
+    const sheet = ss.getSheetByName("USERS");
+    
+    if (!sheet) throw new Error("Aba USERS nao encontrada na planilha definida.");
+    
+    const rows = sheet.getDataRange().getValues();
+    const headers = rows[0];
+    
+    const emailIdx = headers.findIndex(h => String(h).trim().toUpperCase() === "EMAIL");
+    const nameIdx = headers.findIndex(h => String(h).trim().toUpperCase() === "NAME");
+    const statusIdx = headers.findIndex(h => String(h).trim().toUpperCase() === "STATUS");
+    
+    if (emailIdx === -1) throw new Error("Coluna EMAIL nao encontrada.");
+    
+    let isAuthorized = false;
+    let userName = searchEmail.split('@')[0];
+    
+    for (let i = 1; i < rows.length; i++) {
+       const rowEmail = String(rows[i][emailIdx] || "").trim().toLowerCase();
+       if (rowEmail === searchEmail) {
+          const status = statusIdx !== -1 ? String(rows[i][statusIdx]).trim().toUpperCase() : "ACTIVE";
+          if (status !== "INATIVE" && status !== "INACTIVE") {
+             isAuthorized = true;
+             if (nameIdx !== -1 && rows[i][nameIdx]) userName = String(rows[i][nameIdx]);
+          }
+          break;
+       }
+    }
+    
+    if (isAuthorized) {
+       return createJsonResponse({
+         ok: true,
+         session_token: Utilities.getUuid(),
+         user: { email: searchEmail, name: userName, role: "autor" }
+       });
+    } else {
+       return createJsonResponse({ ok: false, error: "Usuario inativo ou nao encontrado na whitelist (USERS)." });
+    }
+    
+  } catch(err) {
+    throw new Error("Falha ao comunicar com Spreadsheet de Autenticacao: " + err.message);
+  }
 }
 
 function handleCreateProject(data) {
+  // Poderia salvar na ActiveSpreadsheet
   return createJsonResponse({ ok: true, project_id: Utilities.getUuid() });
 }
 
