@@ -530,70 +530,110 @@ function clearTimer() {
 }
 
 // ==========================================
-// MOTOR H2 (MOCK)
+// MOTOR H2 (Determinístico v0.1)
 // ==========================================
 DOM.btnAnalyze.addEventListener('click', () => {
-    const content = DOM.mainTextarea.value.trim();
-    if(content.split(/\s+/).length < 20) {
+    const text = DOM.mainTextarea.value.trim();
+    const wordCount = text ? text.split(/\s+/).length : 0;
+
+    if (wordCount < 20) {
         showToast("Escreva ao menos 20 palavras antes de rodar o Motor H2.", "warning");
         return;
     }
 
     DOM.btnAnalyze.innerHTML = `<i data-lucide="loader"></i> Avaliando...`;
-    
-    // Simulate API Call Delay
-    setTimeout(() => {
-        DOM.btnAnalyze.innerHTML = `<i data-lucide="sparkles"></i> Analisar Motor H2`;
-        renderH2Diagnosticos();
-        DOM.h2Panel.classList.remove('closed');
-        lucide.createIcons();
-    }, 1500);
+    lucide.createIcons();
+
+    const meta = (state.currentProject && state.currentProject.meta) || {};
+
+    const result = analyzeTextDeterministic({
+        text,
+        mode:         state.currentProject ? state.currentProject.mode : 'academico',
+        genre:        meta.genre        || 'dissertativo',
+        trail:        meta.trail        || 'corrida',
+        theme:        meta.theme        || '',
+        objective:    meta.objective    || '',
+        interlocutor: meta.interlocutor || ''
+    });
+
+    DOM.btnAnalyze.innerHTML = `<i data-lucide="sparkles"></i> Analisar Motor H2`;
+    renderH2Result(result);
+    DOM.h2Panel.classList.remove('closed');
+    lucide.createIcons();
 });
 
 DOM.btnCloseH2.addEventListener('click', () => {
     DOM.h2Panel.classList.add('closed');
 });
 
-function renderH2Diagnosticos() {
-    // Math random to randomize mock scores for presentation
-    const randomNota = () => Math.floor(Math.random() * 3) + 2; // Returns 2, 3 or 4
+function renderH2Result(result) {
+    if (!result.ok) {
+        DOM.h2Content.innerHTML = `
+            <div class="empty-state">
+                <p>${result.error || "Não foi possível analisar o texto."}</p>
+            </div>`;
+        return;
+    }
 
-    const metrics = [
-        { name: "Estrutura e Progressão", val: randomNota(), desc: "Boa introdução, mas falta amarrar a conclusão." },
-        { name: "Coesão e Encadeamento", val: randomNota(), desc: "Falta diversidade de conectores." },
-        { name: "Argumentação", val: randomNota(), desc: "A tese está clara." }
+    const axisOrder = [
+        ["situacaoEscrita", "Situação de Escrita"],
+        ["estrutura",       "Estrutura e Progressão"],
+        ["coesao",          "Coesão e Encadeamento"],
+        ["argumentacao",    "Argumentação"],
+        ["estilo",          "Estilo e Recursos"],
+        ["curadoria",       "Curadoria de Informação"]
     ];
 
-    let html = '';
-    metrics.forEach(m => {
-        const perc = (m.val / 5) * 100;
-        let color = '#FBBF24'; // warning
-        if(m.val >= 4) color = '#34D399'; // success
-        if(m.val <= 2) color = '#EF4444'; // danger
+    const scoreBoxes = axisOrder.map(([key, label]) => {
+        const score    = result.scores[key].score;
+        const evidence = result.evidence[key] || [];
+        const perc     = (score / 5) * 100;
+        let color = '#FBBF24';
+        if (score >= 4) color = '#34D399';
+        if (score <= 2) color = '#EF4444';
 
-        html += `
+        return `
         <div class="h2-score-box">
             <div class="h2-score-title">
-                <span>${m.name}</span>
-                <span class="h2-stars">${'★'.repeat(m.val)}${'☆'.repeat(5-m.val)}</span>
+                <span>${label}</span>
+                <span class="h2-stars">${'★'.repeat(score)}${'☆'.repeat(5 - score)}</span>
             </div>
             <div class="h2-bar-bg">
-                <div class="h2-bar-fill" style="width: ${perc}%; background-color: ${color};"></div>
+                <div class="h2-bar-fill" style="width:${perc}%; background-color:${color};"></div>
             </div>
-            <div class="h2-explanation">${m.desc}</div>
-        </div>
-        `;
-    });
+            <div class="h2-explanation">
+                ${evidence.length ? evidence.join('<br>') : 'Sem evidências relevantes detectadas.'}
+            </div>
+        </div>`;
+    }).join('');
 
-    html += `
+    const warningsHtml = result.warnings.length ? `
+        <div class="h2-action-box">
+            <h4>⚠ Alertas</h4>
+            <ul class="h2-action-list">
+                ${result.warnings.map(w => `<li>${w}</li>`).join('')}
+            </ul>
+        </div>` : '';
+
+    const revisionHtml = `
         <div class="h2-action-box">
             <h4>Foco de Revisão</h4>
             <ul class="h2-action-list">
-                <li>Experimente usar conectores como "embora" ou "entretanto" para criar ressalvas.</li>
-                <li>Reforce sua tese no último parágrafo conectando com a abertura.</li>
+                ${result.revisionFocus.map(item => `
+                    <li><strong>${item.axis}</strong>: ${item.prompt}</li>
+                `).join('')}
             </ul>
-        </div>
-    `;
+        </div>`;
 
-    DOM.h2Content.innerHTML = html;
+    const s = result.summary;
+    DOM.h2Content.innerHTML = `
+        <div class="h2-summary-box">
+            <p><strong>Gênero:</strong> ${s.genre}</p>
+            <p><strong>Trilha:</strong> ${s.trail}</p>
+            <p><strong>Palavras:</strong> ${s.words} &nbsp;|&nbsp; <strong>Parágrafos:</strong> ${s.paragraphs}</p>
+            <p><strong>Nota global:</strong> ${'★'.repeat(s.overallScore)}${'☆'.repeat(5 - s.overallScore)}</p>
+        </div>
+        ${scoreBoxes}
+        ${warningsHtml}
+        ${revisionHtml}`;
 }
