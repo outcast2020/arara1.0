@@ -4,17 +4,17 @@
 
 // ====== CONFIGURE AQUI ======
 const CONFIG = {
-  FORM_ID: "1Y6b_jSyNZ7ypke_C3tr8-1VHBFzGjaIVAzy4Qxne3R4",
-  TEMPLATE_DOC_ID: "1MinVOws5zBjlghIjCyNH-RKS8v7Z88CUFMVl-4fseNI",
-  OUTPUT_FOLDER_ID: "1w3MvYyEX39eFcBNTYmQUeYLvKiJuWndN",
+  FORM_ID: "",
+  TEMPLATE_DOC_ID: "",
+  OUTPUT_FOLDER_ID: "",
 
   // Planilha do Forms usada para registrar sucesso e erro.
-  LOG_SSID: "1E4rnhvbJUNmFXXZn_IduDEqzottgmIZxadQWyWuhqaU",
+  LOG_SSID: "",
   LOG_SHEET_NAME: "Registro_PDFs",
 
   // Fonte da base poetica.
   // Base ativa em Google Sheets.
-  POEMS_SSID: "1pIauTcsi_G8Z_-528TRrOXtx7Hpri8tZaOc801ai6yY",
+  POEMS_SSID: "",
   POEMS_SHEET_NAME: "POEMS",
   POEMS_ROTATION_PARTS: 5,
 
