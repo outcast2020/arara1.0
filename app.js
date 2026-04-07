@@ -55,8 +55,79 @@ const DOM = {
 };
 
 // ==========================================
-// UTILS
+// UTILS & EFFECTS
 // ==========================================
+
+// --- Efeito Mágico da Arara (Canvas) ---
+function initCanvasDust() {
+    const canvas = document.getElementById('arara-canvas');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let particles = [];
+    
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+    }
+    
+    window.addEventListener('resize', resize);
+    resize();
+    
+    // As cores do cordel / Arara
+    const colors = ['#F05A28', '#9C8AFF', '#FCD34D', '#34D399'];
+    
+    class Particle {
+        constructor() {
+            this.reset();
+            this.y = Math.random() * height; // iniciar em locais aleatorios
+        }
+        
+        reset() {
+            this.x = Math.random() * width;
+            this.y = height + 10;
+            this.size = Math.random() * 3 + 1;
+            this.speedY = -(Math.random() * 1 + 0.5);
+            this.speedX = (Math.random() - 0.5) * 1.5;
+            this.color = colors[Math.floor(Math.random() * colors.length)];
+            this.alpha = Math.random() * 0.5 + 0.1;
+            this.sway = Math.random() * Math.PI * 2;
+        }
+        
+        update() {
+            this.y += this.speedY;
+            this.sway += 0.02;
+            this.x += this.speedX + Math.sin(this.sway) * 0.5;
+            
+            if (this.y < -10 || this.x < -10 || this.x > width + 10) {
+                this.reset();
+            }
+        }
+        
+        draw() {
+            ctx.globalAlpha = this.alpha;
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    
+    for(let i=0; i<60; i++) particles.push(new Particle());
+    
+    function animate() {
+        ctx.clearRect(0, 0, width, height);
+        particles.forEach(p => { p.update(); p.draw(); });
+        requestAnimationFrame(animate);
+    }
+    animate();
+}
+
+// Inicializa os efeitos especiais
+initCanvasDust();
+
 function showToast(msg, type = "info") {
     DOM.toast.textContent = msg;
     DOM.toast.className = `toast show border-${type}`;
