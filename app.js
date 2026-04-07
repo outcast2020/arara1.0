@@ -170,20 +170,11 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyHrOsFQs_0LpXiYnBfQedf
 // ==========================================
 // AUTH & LOGIN
 // ==========================================
-let isLoginValidated = false;
 
 DOM.formLogin.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    // Step 2: Se já validou, permite acesso imediato
-    if(isLoginValidated) {
-        loadMockData();
-        renderDashboard();
-        switchView('view-dashboard');
-        return;
-    }
 
-    // Step 1: Validar
+    // Step 1: Validar e Acessar
     const email = DOM.loginEmail.value.trim();
     const btn = document.getElementById('btn-submit-login');
     const originalText = btn.innerHTML;
@@ -208,30 +199,23 @@ DOM.formLogin.addEventListener('submit', async (e) => {
         
         if (data.ok) {
             state.user = data.user;
+            sessionStorage.setItem('arara_session_token', data.session_token); // Grava token de sessão
             DOM.userDisplayName.textContent = state.user.name;
             
-            // Transforma o botão para permitir o acesso
-            isLoginValidated = true;
-            DOM.loginEmail.disabled = true; // trava o input após validar
-            btn.innerHTML = `Bem-vindo, ${state.user.name}! Acessar <i data-lucide="arrow-right"></i>`;
-            btn.classList.add('gradient-btn'); // visual vibrante liberado
             showToast("Usuário validado com sucesso!", "success");
+            loadMockData();
+            renderDashboard();
+            switchView('view-dashboard');
             
         } else {
             showToast("Acesso negado: e-mail não listado na aba USERS.", "error");
-            btn.innerHTML = originalText;
         }
     } catch (err) {
-        console.warn("Erro ao contactar a API:", err);
-        // Fallback local se bloqueado por CORS
-        isLoginValidated = true;
-        state.user = { email, name: email.split('@')[0] };
-        DOM.userDisplayName.textContent = state.user.name;
-        DOM.loginEmail.disabled = true;
-        btn.innerHTML = `Bem-vindo, ${state.user.name}! (Modo Especial) <i data-lucide="arrow-right"></i>`;
-        btn.classList.add('gradient-btn');
-        showToast("Conexão falhou. Autorizado fallback automático.", "warning");
+        console.error("Erro crítico de API:", err);
+        // Fallback inseguro removido. Em caso de bloqueio, barra o usuário.
+        showToast("Erro na conexão com o servidor. Impossível validar usuário.", "error");
     } finally {
+        btn.innerHTML = `Acessar <i data-lucide="arrow-right"></i>`;
         lucide.createIcons();
     }
 });
@@ -239,6 +223,15 @@ DOM.formLogin.addEventListener('submit', async (e) => {
 DOM.btnLogout.addEventListener('click', () => {
     state.user = null;
     state.currentProject = null;
+    sessionStorage.removeItem('arara_session_token');
+    
+    // UI Reset total
+    DOM.loginEmail.value = '';
+    DOM.loginEmail.disabled = false;
+    const btn = document.getElementById('btn-submit-login');
+    btn.innerHTML = `Acessar <i data-lucide="arrow-right"></i>`;
+    btn.classList.remove('gradient-btn');
+    
     clearTimer();
     switchView('view-login');
 });
