@@ -94,7 +94,7 @@ function formatTime(seconds) {
 // ==========================================
 // CONFIGURATION
 // ==========================================
-const API_URL = "https://script.google.com/macros/s/AKfycbxbuf8-kF09n3OwdG-DI568_8xKyXQANmS-h0oZNy35q_lgtnysxLj7-EKx_uIUopDWIQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyHrOsFQs_0LpXiYnBfQedfSKjlsDy5DPr4nFlTewcBWsE-qXTBPQ5WU4Lv0J0DJOJPag/exec";
 
 // ==========================================
 // AUTH & LOGIN
